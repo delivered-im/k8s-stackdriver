@@ -32,6 +32,7 @@ type SourceConfig struct {
 	Component     string
 	Host          string
 	Port          uint
+	Scheme        string
 	Path          string
 	Whitelisted   []string
 	PodConfig     PodConfig
@@ -41,7 +42,7 @@ type SourceConfig struct {
 const defaultMetricsPath = "/metrics"
 
 // newSourceConfig creates a new SourceConfig based on string representation of fields.
-func newSourceConfig(component, host, port, path, whitelisted, metricsPrefix string, podConfig PodConfig) (*SourceConfig, error) {
+func newSourceConfig(component, host, port, scheme, path, whitelisted, metricsPrefix string, podConfig PodConfig) (*SourceConfig, error) {
 	if port == "" {
 		return nil, fmt.Errorf("No port provided.")
 	}
@@ -63,6 +64,7 @@ func newSourceConfig(component, host, port, path, whitelisted, metricsPrefix str
 		Component:     component,
 		Host:          host,
 		Port:          uint(portNum),
+		Scheme:        scheme,
 		Path:          path,
 		Whitelisted:   whitelistedList,
 		PodConfig:     podConfig,
@@ -77,6 +79,7 @@ func parseSourceConfig(uri flags.Uri, podId, namespaceId string) (*SourceConfig,
 		return nil, err
 	}
 
+	scheme := uri.Val.Scheme
 	component := uri.Key
 	values := uri.Val.Query()
 	path := uri.Val.Path
@@ -87,7 +90,7 @@ func parseSourceConfig(uri flags.Uri, podId, namespaceId string) (*SourceConfig,
 	metricsPrefix := values.Get("metricsPrefix")
 	podConfig := NewPodConfig(podId, namespaceId, podIdLabel, namespaceIdLabel, containerNamelabel)
 
-	return newSourceConfig(component, host, port, path, whitelisted, metricsPrefix, podConfig)
+	return newSourceConfig(component, host, port, scheme, path, whitelisted, metricsPrefix, podConfig)
 }
 
 // UpdateWhitelistedMetrics sets passed list as a list of whitelisted metrics.

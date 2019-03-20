@@ -32,47 +32,62 @@ func TestNewSourceConfig(t *testing.T) {
 		component   string
 		host        string
 		port        string
+		scheme      string
 		path        string
 		whitelisted string
 		podConfig   PodConfig
 		output      SourceConfig
 	}{
-		{"testComponent", "localhost", "1234", defaultMetricsPath, "a,b,c,d", podConfig,
+		{"testComponent", "localhost", "1234", "http", defaultMetricsPath, "a,b,c,d", podConfig,
 			SourceConfig{
 				Component:   "testComponent",
 				Host:        "localhost",
 				Port:        1234,
+				Scheme:      "http",
 				Path:        defaultMetricsPath,
 				Whitelisted: []string{"a", "b", "c", "d"},
 				PodConfig:   podConfig,
 			},
 		},
-
-		{"testComponent", "localhost", "1234", "/status/prometheus", "", emptyPodConfig,
+		{"testComponent", "localhost", "1234", "https", defaultMetricsPath, "a,b,c,d", podConfig,
 			SourceConfig{
 				Component:   "testComponent",
 				Host:        "localhost",
 				Port:        1234,
+				Scheme:      "https",
+				Path:        defaultMetricsPath,
+				Whitelisted: []string{"a", "b", "c", "d"},
+				PodConfig:   podConfig,
+			},
+		},
+		{"testComponent", "localhost", "1234", "http", "/status/prometheus", "", emptyPodConfig,
+			SourceConfig{
+				Component:   "testComponent",
+				Host:        "localhost",
+				Port:        1234,
+				Scheme:      "http",
 				Path:        "/status/prometheus",
 				Whitelisted: nil,
 				PodConfig:   emptyPodConfig,
 			},
 		},
-		{"testComponent", "localhost", "1234", "/", "", emptyPodConfig,
+		{"testComponent", "localhost", "1234", "http", "/", "", emptyPodConfig,
 			SourceConfig{
 				Component:   "testComponent",
 				Host:        "localhost",
 				Port:        1234,
+				Scheme:      "http",
 				Path:        "/metrics",
 				Whitelisted: nil,
 				PodConfig:   emptyPodConfig,
 			},
 		},
-		{"testComponent", "localhost", "1234", "", "", emptyPodConfig,
+		{"testComponent", "localhost", "1234", "http", "", "", emptyPodConfig,
 			SourceConfig{
 				Component:   "testComponent",
 				Host:        "localhost",
 				Port:        1234,
+				Scheme:      "http",
 				Path:        "/metrics",
 				Whitelisted: nil,
 				PodConfig:   emptyPodConfig,
@@ -81,7 +96,7 @@ func TestNewSourceConfig(t *testing.T) {
 	}
 
 	for _, c := range correct {
-		res, err := newSourceConfig(c.component, c.host, c.port, c.path, c.whitelisted, "", c.podConfig)
+		res, err := newSourceConfig(c.component, c.host, c.port, c.scheme, c.path, c.whitelisted, "", c.podConfig)
 		if assert.NoError(t, err) {
 			assert.Equal(t, c.output, *res)
 		}
@@ -99,6 +114,26 @@ func TestParseSourceConfig(t *testing.T) {
 			flags.Uri{
 				Key: "testComponent",
 				Val: url.URL{
+					Scheme:   "https",
+					Host:     "hostname:1234",
+					Path:     defaultMetricsPath,
+					RawQuery: "whitelisted=a,b,c,d",
+				},
+			},
+			SourceConfig{
+				Component:   "testComponent",
+				Host:        "hostname",
+				Port:        1234,
+				Scheme:      "https",
+				Path:        defaultMetricsPath,
+				Whitelisted: []string{"a", "b", "c", "d"},
+				PodConfig:   NewPodConfig(podId, namespaceId, "", "", ""),
+			},
+		},
+		{
+			flags.Uri{
+				Key: "testComponent",
+				Val: url.URL{
 					Scheme:   "http",
 					Host:     "hostname:1234",
 					Path:     defaultMetricsPath,
@@ -109,6 +144,7 @@ func TestParseSourceConfig(t *testing.T) {
 				Component:   "testComponent",
 				Host:        "hostname",
 				Port:        1234,
+				Scheme:      "http",
 				Path:        defaultMetricsPath,
 				Whitelisted: []string{"a", "b", "c", "d"},
 				PodConfig:   NewPodConfig(podId, namespaceId, "", "", ""),
@@ -128,6 +164,7 @@ func TestParseSourceConfig(t *testing.T) {
 				Component:   "testComponent",
 				Host:        "hostname",
 				Port:        1234,
+				Scheme:      "http",
 				Path:        "/status/prometheus",
 				Whitelisted: []string{"a", "b", "c", "d"},
 				PodConfig:   NewPodConfig(podId, namespaceId, "", "", ""),
@@ -147,6 +184,7 @@ func TestParseSourceConfig(t *testing.T) {
 				Component:     "testComponent",
 				Host:          "localhost",
 				Port:          8080,
+				Scheme:        "http",
 				Path:          defaultMetricsPath,
 				MetricsPrefix: "container.googleapis.com/newPrefix",
 				PodConfig:     NewPodConfig(podId, namespaceId, "", "", ""),

@@ -100,11 +100,12 @@ func getConfigsFromPods(pods []core.Pod, sources map[string]url.URL) []*SourceCo
 
 func mapToSourceConfig(componentName string, url url.URL, ip, podId, namespaceId string) (*SourceConfig, error) {
 	port := url.Port()
+	scheme := url.Scheme
 	whitelisted := url.Query().Get("whitelisted")
 	podIdLabel := url.Query().Get("podIdLabel")
 	namespaceIdLabel := url.Query().Get("namespaceIdLabel")
 	containerNamelabel := url.Query().Get("containerNamelabel")
 	metricsPrefix := url.Query().Get("metricsPrefix")
 	podConfig := NewPodConfig(podId, namespaceId, podIdLabel, namespaceIdLabel, containerNamelabel)
-	return newSourceConfig(componentName, ip, port, url.Path, whitelisted, metricsPrefix, podConfig)
+	return newSourceConfig(componentName, ip, port, scheme, url.Path, whitelisted, metricsPrefix, podConfig)
 }

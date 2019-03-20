@@ -47,7 +47,7 @@ func GetPrometheusMetrics(config *config.SourceConfig) (*PrometheusResponse, err
 }
 
 func getPrometheusMetrics(config *config.SourceConfig) (*PrometheusResponse, error) {
-	url := fmt.Sprintf("http://%s:%d%s", config.Host, config.Port, config.Path)
+	url := fmt.Sprintf("%s://%s:%d%s", config.Scheme, config.Host, config.Port, config.Path)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("request %s failed: %v", url, err)
