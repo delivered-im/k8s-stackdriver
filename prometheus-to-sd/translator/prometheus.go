@@ -61,11 +61,11 @@ func getPrometheusMetrics(config *config.SourceConfig, caCerts []string) (*Prome
 		for _, crt := range caCerts {
 			certs, err := ioutil.ReadFile(crt)
 			if err != nil {
-				return nil, fmt.Errorf("failed to read CA certs file %s: %v", crt, err)
+				return nil, fmt.Errorf("CA certs file %s: %v", crt, err)
 			}
 
 			if ok := crtPool.AppendCertsFromPEM([]byte(certs)); !ok {
-				return nil, fmt.Errorf("failed to append CA certs from file %s to the system certificate pool: %v", crt, err)
+				return nil, fmt.Errorf("CA certs from file %s to the system certificate pool: %v", crt, err)
 			}
 		}
 		client.Transport = &http.Transport{TLSClientConfig: &tls.Config{RootCAs: crtPool}}
