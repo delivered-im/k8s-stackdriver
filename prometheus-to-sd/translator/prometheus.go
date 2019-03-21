@@ -17,6 +17,8 @@ limitations under the License.
 package translator
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -36,8 +38,8 @@ type PrometheusResponse struct {
 }
 
 // GetPrometheusMetrics scrapes metrics from the given host and port using /metrics handler.
-func GetPrometheusMetrics(config *config.SourceConfig) (*PrometheusResponse, error) {
-	res, err := getPrometheusMetrics(config)
+func GetPrometheusMetrics(config *config.SourceConfig, caCerts []string) (*PrometheusResponse, error) {
+	res, err := getPrometheusMetrics(config, caCerts)
 	if err != nil {
 		componentMetricsAvailable.WithLabelValues(config.Component).Set(0.0)
 	} else {
@@ -46,9 +48,30 @@ func GetPrometheusMetrics(config *config.SourceConfig) (*PrometheusResponse, err
 	return res, err
 }
 
-func getPrometheusMetrics(config *config.SourceConfig) (*PrometheusResponse, error) {
+func getPrometheusMetrics(config *config.SourceConfig, caCerts []string) (*PrometheusResponse, error) {
 	url := fmt.Sprintf("%s://%s:%d%s", config.Scheme, config.Host, config.Port, config.Path)
-	resp, err := http.Get(url)
+
+	client := http.Client{}
+	if len(caCerts) > 0 {
+		crtPool, _ := x509.SystemCertPool()
+		if crtPool == nil {
+			crtPool = x509.NewCertPool()
+		}
+
+		for _, crt := range caCerts {
+			certs, err := ioutil.ReadFile(crt)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read CA certs file %s: %v", crt, err)
+			}
+
+			if ok := crtPool.AppendCertsFromPEM([]byte(certs)); !ok {
+				return nil, fmt.Errorf("failed to append CA certs from file %s to the system certificate pool: %v", crt, err)
+			}
+		}
+		client.Transport = &http.Transport{TLSClientConfig: &tls.Config{RootCAs: crtPool}}
+	}
+
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("request %s failed: %v", url, err)
 	}

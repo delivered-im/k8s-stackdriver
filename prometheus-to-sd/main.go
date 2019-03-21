@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -64,6 +65,7 @@ var (
 		"The interval between metric exports. Can't be lower than --scrape-interval.")
 	downcaseMetricNames = flag.Bool("downcase-metric-names", false,
 		"If enabled, will downcase all metric names.")
+	caCertsArg = flag.String("ca-certs", "", "additional CA certs to be used when fetching metrics")
 )
 
 func main() {
@@ -75,6 +77,8 @@ func main() {
 
 	defer glog.Flush()
 	flag.Parse()
+
+	caCerts := strings.Split(*caCertsArg, ",")
 
 	gceConf, err := config.GetGceConfig(*zoneOverride, *monitoredResourceTypes)
 	if err != nil {
@@ -112,7 +116,7 @@ func main() {
 		glog.V(4).Infof("Starting goroutine for %+v", sourceConfig)
 
 		// Pass sourceConfig as a parameter to avoid using the last sourceConfig by all goroutines.
-		go readAndPushDataToStackdriver(stackdriverService, gceConf, sourceConfig)
+		go readAndPushDataToStackdriver(stackdriverService, gceConf, sourceConfig, caCerts)
 	}
 
 	// As worker goroutines work forever, block main thread as well.
@@ -130,7 +134,7 @@ func getSourceConfigs(defaultMetricsPrefix string, gceConfig *config.GceConfig) 
 	return append(staticSourceConfigs, dynamicSourceConfigs...)
 }
 
-func readAndPushDataToStackdriver(stackdriverService *v3.Service, gceConf *config.GceConfig, sourceConfig *config.SourceConfig) {
+func readAndPushDataToStackdriver(stackdriverService *v3.Service, gceConf *config.GceConfig, sourceConfig *config.SourceConfig, caCerts []string) {
 	glog.Infof("Running prometheus-to-sd, monitored target is %s %v:%v", sourceConfig.Component, sourceConfig.Host, sourceConfig.Port)
 	commonConfig := &config.CommonConfig{
 		GceConfig:           gceConf,
@@ -177,7 +181,7 @@ func readAndPushDataToStackdriver(stackdriverService *v3.Service, gceConf *confi
 			glog.V(4).Infof("Skipping %v component as there are no metric to expose.", sourceConfig.Component)
 			continue
 		}
-		metrics, err := translator.GetPrometheusMetrics(sourceConfig)
+		metrics, err := translator.GetPrometheusMetrics(sourceConfig, caCerts)
 		if err != nil {
 			glog.V(2).Infof("Error while getting Prometheus metrics %v for component %v", err, sourceConfig.Component)
 			continue
