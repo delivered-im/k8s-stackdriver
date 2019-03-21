@@ -78,7 +78,10 @@ func main() {
 	defer glog.Flush()
 	flag.Parse()
 
-	caCerts := strings.Split(*caCertsArg, ",")
+	var caCerts []string
+	if *caCertsArg != "" {
+		caCerts = strings.Split(*caCertsArg, ",")
+	}
 
 	gceConf, err := config.GetGceConfig(*zoneOverride, *monitoredResourceTypes)
 	if err != nil {

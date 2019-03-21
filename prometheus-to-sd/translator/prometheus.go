@@ -52,7 +52,7 @@ func getPrometheusMetrics(config *config.SourceConfig, caCerts []string) (*Prome
 	url := fmt.Sprintf("%s://%s:%d%s", config.Scheme, config.Host, config.Port, config.Path)
 
 	client := http.Client{}
-	if len(caCerts) > 0 {
+	if caCerts != nil {
 		crtPool, _ := x509.SystemCertPool()
 		if crtPool == nil {
 			crtPool = x509.NewCertPool()
